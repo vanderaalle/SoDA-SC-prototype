@@ -1,0 +1,32 @@
+
+- we have to decide on the final design on the server
+- 
+
+decisions:
+tags to be added -> size in meters
+FEUTIL will be used to batch process everything before
+
+
+to do:
+- take ONLY THE FIRST RESULTS from CELI and DO not choose a random OK
+- do not give priority to Atoms  OK
+- put less reverb  OK
+- reverb should reciprocal to spread for external spaces and analogous for internal -> add a argument of internal/external should composer
+- localise sound in a greater than X distance from the listener to achieve a more dynamic lenght OK
+- find out why the footsteps have been static
+
+// FIX RANDOMNESS in Entries  OK
+// Fix BUG in Atoms-bouncing  
+
+
+// Fix BUG in Atoms-bouncing  
+- add size in pre-process 
+
+
+to report:
+-> why all atoms have the same class ???
+
+
+
+to do
+-> put Spectral ANALYSIS in the PROCESS TOO 

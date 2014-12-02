@@ -1,0 +1,166 @@
+TITLE:: SSG_AbstractSonicSource
+summary:: Abstract class used internally. SSG_Atmosphere and all SSG_SonicEvents inherit from SSG_AbstractSonicSource
+categories:: SoundScapeGenerator
+related:: SSG_SonicAtmosphere, SSG_FixedSound, SSG_AmbulatorySoundEnv, SSG_AmbulatorySoundFunc, SSG_SoundCloud, SoundScapeGenerator.
+
+
+DESCRIPTION::
+An abstract class from which all sonic sources inherit. SonicSources are abstractions of sonic events and denote where a sound (represented by a SSG_SonicObject or SSG_Sequence) should be positioned in virtual space and when it should be triggered for play-back (given a ListPattern arbitrary complexity that returns time durations between subsequent appearances). Note that the audio output of all SSG_AbstractSonicSource is a b-format ambisonics signal and not normal mono or stereo. Clients are not supposed to use this class directly, but rather rely on its subclasses.
+
+The subclass hierarchy is as follows:
+
+CLASSTREE:: SSG_AbstractSonicSource
+
+NOTE:: SSG_AbstactSonicSource is part of the SoundScapeGenerator (SSG) system, developed by Marinos Koutsomichalis (marinos@agxivatein.com) for the purposes of the Sound Design Accelator (SoDA) project, during his research fellowship inthe CIRMA, Univerista Degli Studi di Torino the period of 2013-2014. See SoundScapeGenerator for an overview of the whole system.::
+
+CLASSMETHODS::
+
+PRIVATE:: initClass
+
+METHOD:: group
+All SSG_SonicSources belong to the same group (this allows for easier control of the order of execution)
+
+returns:: an instance of CtkAudio
+
+METHOD::new
+Constructs and returns a new SSG_AbstractSonicSource object. Note that all arguments should comply to the very strickt type-checking rules that are described below.
+
+ARGUMENT:: sequence
+Should be an instance of SSG_Sequence or a singleton SSG_SonicObject. 
+
+ARGUMENT:: pWait
+Should be an instance of ListPattern with a list comprised of only Integer or Float objects or of other ListPattern objects that recursively respect this rule. Patterns of arbitrarily complexity may be used. pWait defines the time durations between subsequent appearances of the sequence. Note that these time durations represent the interval between the end of a sequence and it's re-appearence, once triggered a sequence will play up to its end. 
+
+ARGUMENT:: size
+An instance of Number defining the size of the SonicSource in the virtual SoundScape model (in meters).  
+
+ARGUMENT:: label
+A user-defined name for the SSG_AbstractSonicSource object. it should be an instance of Symbol.
+
+ARGUMENT:: info
+A user-defined information text stored with the object. Should be an instance of String.
+
+returns:: A SSG_AbstractSonicSource object
+
+INSTANCEMETHODS::
+
+METHOD::play
+Playbacks the SonicSource in real-time. This is normally called by SSG_Runner or used for testing purposes.
+
+ARGUMENT:: outBus
+The outBus wherein audio should be written. Should be an instance of Bus, CtkAudio or Integer.
+
+ARGUMENT:: doneAction
+An action to be evaluated one playback has stoped. Should be an instance of Function.
+
+returns:: this SSG_AbstractSonicSource object
+
+METHOD:: setSequence
+Sets a new sequence.
+
+ARGUMENT:: sequence_
+An instance of SSG_Sequence.
+
+returns:: this SSG_AbstractSonicSource object
+
+METHOD:: info
+The user-defined textual description of the object.
+
+returns:: An instance of String.
+
+METHOD::stop
+Stops play-back. 
+
+returns:: this SSG_AbstractSonicSource object.
+
+METHOD:: size
+The size of the SonicSource in virtual space (in meters).
+
+returns:: An instance of Number.
+
+METHOD:: id
+The unique id of the object
+
+returns:: An instance of Integer.
+
+METHOD:: donePlaying
+Whether the SonicSource is currently playing or not. 
+
+returns:: An instance of Boolean.
+
+PRIVATE:: pr_init
+
+METHOD:: exportScore
+Exports a score (This is normally called by SSG_Runner when in NRT mode). 
+
+ARGUMENT:: timeOffset
+A time offset in seconds (Number).
+
+ARGUMENT:: maxDuration
+The maximum allowed duration for each sequence (useful to deal with Sequences of infinite length).
+
+ARGUMENT:: outBus
+The ouput bus of the Score. Should be an instance of CtkAudio, Bus or Integer.
+
+returns:: An instance of CtkScore (a parent score containing children scores).
+
+METHOD:: label
+Returns the label of the object.
+
+returns:: An instance of Symbol.
+
+METHOD:: position
+A 3-channel bus containing the spatial coordinates of the SonicSource in Cartesian (x,y,z) format.
+
+returns:: An instance of CtkControl.
+
+METHOD:: setLabel
+Set a new label for the object.
+
+ARGUMENT:: label_
+An instance of Symbol.
+
+returns:: this SSG_AbstractSonicSource object.
+
+METHOD:: donePlayingCond
+A Condition reflecting the playing status of the object.
+
+returns:: An instance of Condition.
+
+METHOD:: reset
+Resets the object (so that play-back will start from scratch).
+
+returns:: this SSG_AbstractSonicSource object.
+
+METHOD:: setInfo
+Set a new textual description for the object.
+
+ARGUMENT:: info_
+An instance of String.
+
+returns:: this SSG_AbstractSonicSource object.
+
+
+EXAMPLES::
+
+code::
+( 
+
+// a new SSG_AbstractSonicSource object
+~file = Platform.resourceDir +/+ "sounds/a11wlk01-44_1.aiff";
+~object = SSG_SonicObject.new(~file);
+~sequence = SSG_Sequence.new(
+	Pseq([~object,nil,Prand([~object,nil],2),nil],1),
+	Prand([1,2,Prand([3,4],2)],5));
+~sonicSource = SSG_AbstractSonicSource.new(~sequence, Pseq([0,2,2],1));
+
+// export score
+~score = ~sonicSource.exportScore();
+
+// play back 
+Server.default.waitForBoot({
+	~score.play;
+})
+)
+
+::

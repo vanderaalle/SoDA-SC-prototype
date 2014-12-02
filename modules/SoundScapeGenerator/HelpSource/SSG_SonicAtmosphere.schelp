@@ -1,0 +1,67 @@
+TITLE:: SSG_SonicAtmosphere
+summary:: A special kind of non-directional sonic source.
+categories:: SoundScapeGenerator
+related:: SSG_AbstractSonicSource, SSG_FixedSound, SSG_AmbulatorySoundEnv, SSG_AmbulatorySoundFunc, SSG_SoundCloud, SoundScapeGenerator.
+
+
+DESCRIPTION::
+SSG_SonicAtmosphere is a container of a sonic atmosphere, a special kind of a sonic source which is not directional. Every SSG_SoundZone is expected to have at least one associated sonic atmosphere which will constitute its neutral sonic background. Note that while pauses are allowed in a sonic atmosphere sequence, it is normally a mistake to have silence moments in an atmosphere, at least in a sound-design context.
+
+NOTE:: SSG_AbstactSonicSource is part of the SoundScapeGenerator (SSG) system, developed by Marinos Koutsomichalis (marinos@agxivatein.com) for the purposes of the Sound Design Accelator (SoDA) project, during his research fellowship inthe CIRMA, Univerista Degli Studi di Torino the period of 2013-2014. See SoundScapeGenerator for an overview of the whole system.::
+
+
+CLASSMETHODS::
+
+METHOD:: new
+Constructs and returns a new SSG_SonicAtmosphere object. Unlike the other subclasses of SSG_AbstractSonicSource, SSG_SonicAtmosphere objects do not have a pWait argument to control when sound should be triggered, since by definition a SonicAtmosphere should be ever-present (therefore the associated sound sequence will loop infinitely).
+
+ARGUMENT:: sequence
+Should be an instance of SSG_Sequence or a singleton SSG_SonicObject. 
+
+ARGUMENT:: label
+A user-defined name for the SSG_AbstractSonicSource object. it should be an instance of Symbol.
+
+ARGUMENT:: info
+A user-defined information text stored with the object. Should be an instance of String.
+
+returns:: an instance of SSG_SonicAtmosphere object.
+
+
+INSTANCEMETHODS::
+
+PRIVATE:: pr_sub_init
+
+METHOD:: size
+returns nil since a SonicAtmosphere is size-less
+
+returns:: nil
+
+METHOD:: position
+returns nil since a SonicAtmosphere is non-directional
+
+returns:: nil
+
+copymethod:: SSG_AbstractSonicSource -info
+copymethod:: SSG_AbstractSonicSource -id
+copymethod:: SSG_AbstractSonicSource -label
+copymethod:: SSG_AbstractSonicSource -donePlaying
+copymethod:: SSG_AbstractSonicSource -donePlayingCond
+copymethod:: SSG_AbstractSonicSource -play
+copymethod:: SSG_AbstractSonicSource -stop
+copymethod:: SSG_AbstractSonicSource -reset
+copymethod:: SSG_AbstractSonicSource -exportScore
+copymethod:: SSG_AbstractSonicSource -setSequence
+copymethod:: SSG_AbstractSonicSource -setLabel
+copymethod:: SSG_AbstractSonicSource -setInfo
+
+
+EXAMPLES::
+
+code::
+
+// create and play a new SonicAtmosphere object
+~file = Platform.resourceDir +/+ "sounds/a11wlk01-44_1.aiff";
+~object = SSG_SonicObject.new(~file);
+~sonicAtmosphere = SSG_SonicAtmosphere.new(~object);
+~sonicAtmosphere.play;
+::

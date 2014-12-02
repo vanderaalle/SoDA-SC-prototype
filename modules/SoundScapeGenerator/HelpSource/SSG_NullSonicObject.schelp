@@ -1,0 +1,75 @@
+TITLE:: SSG_NullSonicObject
+summary:: (part of SoundScapeGenerator) An empty vertex object. 
+categories:: SoundScapeGenerator
+related:: SSG_AbstractSonicObject, SSG_SonicObject, SoundScapeGenerator.
+
+DESCRIPTION::
+An empty vertex. This is used internally whenever no playback should occur yet some SonicObject object is syntactically needed. SSG_SonicObject.new will return an instance of SSG_NullSonicObject if the path provided does not point to some actual file. 
+
+NOTE:: SSG_NullSonicObject is part of the SoundScapeGenerator (SSG) system, developed by Marinos Koutsomichalis (marinos@agxivatein.com) for the purposes of the Sound Design Accelator (SoDA) project, during his research fellowship inthe CIRMA, Univerista Degli Studi di Torino the period of 2013-2014. See SoundScapeGenerator for an overview of the whole system.::
+
+CLASSMETHODS::
+
+METHOD:: new
+simply returns a SSG_NullSonicObject.
+
+returns:: a new SSG_NullSonicObject object.
+
+
+INSTANCEMETHODS::
+
+METHOD:: id
+returns:: nil
+
+METHOD:: sampleRate
+returns:: nil
+
+METHOD:: path
+returns:: nil
+
+METHOD:: buffer
+returns:: nil
+
+METHOD:: label
+returns:: \nullSonicObject
+
+METHOD:: numChannels
+returns:: nil
+
+PRIVATE:: pr_init
+
+METHOD:: info
+returns:: "this object does not point at any kind of audio data"
+
+METHOD:: duration
+returns:: 0
+
+METHOD:: numFrames
+returns:: nil
+
+METHOD:: disk
+returns:: nil
+
+METHOD:: loaded
+returns:: true
+
+METHOD:: loadedCond
+returns:: A instance of Condition (initialized as true)
+
+METHOD:: synthDefTag
+returns:: nil
+
+METHOD:: play
+returns:: this object
+
+METHOD:: load
+returns:: this object
+
+METHOD:: free
+returns:: this object
+
+METHOD:: setLabel
+returns:: this object
+
+METHOD:: setInfo
+returns:: this object

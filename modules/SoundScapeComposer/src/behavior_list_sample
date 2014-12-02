@@ -1,0 +1,27 @@
+
+
+Atmo
+-> relative amplitude  (0.5)
+
+-> crossfade           (30)
+-> spectral gaps ?
+-> actual amplitude
+-> FEUtil
+
+Sequences
+-> relative amplitude  (0.5)
+-> range of movement   ([[0,0],[0,0],[0,0]])
+-> speed               (0.4)   meter/sec
+-> acceleration        (absolute)
+-> type of Shot        (CU)
+?
+-> repeatable          (0)
+-> size                (0.2) 
+
+Atoms
++ sequence
+-> crossfade           (to be calculated by interpreter)
+-> to be associated with what other Atoms ?  (they are grouped according to relevance)
+-> Frequency (ms between succesive calls)  (300) ms
+-> Concatenation       (3) 
+

@@ -1,0 +1,3 @@
+
+SSG_SonicObject
+- the object will return a reference to an existing one if the path provided is already registered, 

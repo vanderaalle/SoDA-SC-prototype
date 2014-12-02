@@ -1,0 +1,85 @@
+
+NOTES:
+
+- currently at a zone level,the filterSlope and the acoustic opacity stand affect the sound going OUT of a Zone and not IN !! 
+
+Known BUGS: 
+
+- readFromDisk does not work properly in both RT and NRT mode !!!!!!! (this is due to only portions of the file being cued for playback thus the buffer has to be loaded before each repetition)
+
+Sequence/SonicSource
+- BUG: if an exported score is then played back then normal play does not work anymore ! This happens becase CtkScore frees the buffer when the score has finished playing back.
+
+- something is strange with Runner, while a score plays ok if bounce is asked again or sth like that I need to re-start the interpreter before it works again
+
+- exportScore / play are not stable - e.g. after a commandPeriod, etc
+
+- double check Spatialization !!!
+
+- n_free node not found ??
+
+- there is a synth-leak somewhere???
+
+- it is very CPU intensive - I should somehow make everything cheaper
+
+TO DO: 
+
+- test with actual Ambulatory listeners
+
+- find a way to implement acoustic opacity (alpha!)
+
+make sure localizeSynths playback only when needed
+
+Check Spatialization !!!
+
+Impulse Response !
+
+SonicSources
+- UnitTests / HelpFiles
+
+DEBUG -> SSG_AbstractSoundCloud
+
+Runner -> master volume
+
+SSG_AbstractListener 
+- stop
+
+SSG_AmbulatoryListenerEnv
+- reset
+
+SSG_FixedListener
+- test
+
+SSG_RandomWalker
+- implement
+
+SSG_Runner
+- reset
+- rest
+
+implement SSG_SoundCloud
+implement SSG_RandomWalker
+test SSG_AmbulatoryListenerEnv
+write the help-files for all classes
+properly clean up SSG_Runner
+listening radius
+SSG_Runner -> perform tests so that SoundZones do not overlap inside a sonicSpace
+SSG_Runner -> does not stop as expected
+SSG_Runner -> check localization algorithm
+SSG_AbstractListener -> check listeningRadius implementation
+
+
+
+FINALIZE
+SSG_FixedSound/SonicAtmosphere/AmbulatorySoundEnv/Func/SoundCloud
+- finalize help files (copy methods, examples)
+- update help files, Patterns are now supported rather than ListPattern
+- finalize unit tests
+
+
+
+
+
+
+
+

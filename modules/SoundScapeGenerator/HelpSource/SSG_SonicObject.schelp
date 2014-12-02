@@ -1,0 +1,130 @@
+TITLE:: SSG_SonicObject
+summary:: (part of SoundScapeGenerator) A wraper pointing to some audio file.
+categories:: SoundScapeGenerator
+related:: SSG_AbstractSonicObject, SSG_NullSonicObject, SoundScapeGenerator.
+
+DESCRIPTION::
+An SSG_SonicObject is a pointer to some actual audio file and as such it is an essential building block to construct a SoundScape. Audio files must be first registered as SSG_SonicObject objects before they can be used in SoundScapeGenerator. 
+
+An SSG_SonicObject features a number of accessor methods that return info regarding the file (duration, number of frames, etc) as well as user-defined tags (info, label, etc). An SSG_SonicObject holds an instance of CtkBuffer internally that will be used by SSG_Runner internally to playback the file when needed. 
+
+NOTE:: SSG_SonicObject is implemented in a way that different objects pointing at the same path will all point at the same buffer (to avoid loading redundant data to the RAM). The class keeps track of the instances that refer to the same audio data and will make sure there are always available to those objects needing them even if the original object is freed or destroyed::
+
+NOTE:: SSG_SonicObject is part of the SoundScapeGenerator (SSG) system, developed by Marinos Koutsomichalis (marinos@agxivatein.com) for the purposes of the Sound Design Accelator (SoDA) project, during his research fellowship inthe CIRMA, Univerista Degli Studi di Torino the period of 2013-2014. See SoundScapeGenerator for an overview of the whole system.::
+
+CLASSMETHODS::
+
+METHOD:: new
+Return a new SSG_SonicObject object (or an SSG_NullSonicObject if the path is not valid).
+
+ARGUMENT:: path
+The path to the actual audio file. If invalid an SSG_NullSonicObject object will be returned instead). Should be an instance of String.
+
+ARGUMENT:: label
+A user defined label. Should be an instance of Symbol. 
+
+ARGUMENT:: info
+A user defined information tag. Should be an instance of String. 
+
+ARGUMENT:: disk
+If true the file will stream from the disk rather than loaded to RAM. Should be an instance of Boolean.
+
+returns:: an SSG_SonicObject (SSG_NullSonicObject if path is invalid) object.
+
+
+INSTANCEMETHODS::
+
+METHOD:: play
+play back the file (meant for testing purposes only !).
+
+returns:: this SSG_SonicObject oject.
+
+METHOD:: load
+loads audio data to memory (meant for RT use only!). The user should not normally call this method as it is called automatically when needed. 
+
+returns:: this SSG_SonicObject object.
+
+METHOD:: free
+frees audio data from memory if no other object refers to them, else decrements the reference count..
+
+returns:: this SSG_SonicObject object.
+
+PRIVATE:: pr_sub_init
+
+METHOD:: id
+A unique id for each new SSG_SonicObject object, nil otherwise.
+
+returns:: an Integer object.
+
+METHOD:: sampleRate
+The audio file's sampling rate.
+
+returns:: an Integer object.
+
+METHOD:: path
+The path to the audio file.
+
+returns:: a String object.
+
+METHOD:: buffer
+The CtkBuffer object holding the audio data.
+
+returns:: CtkBuffer
+
+METHOD:: label
+A user-defined label.
+
+returns:: an instance of Symbol.
+
+METHOD:: numChannels
+The number of channels of the audio file.
+
+returns:: an instance of Integer.
+
+PRIVATE:: pr_init
+
+METHOD:: info
+User-defined information tag.
+
+returns:: a String object.
+
+METHOD:: duration
+The duration of the audio in seconds.
+
+returns:: an instance of Float.
+
+METHOD:: numFrames
+The number of frames of the audio file.
+
+returns:: an instance of Integer.
+
+METHOD:: disk
+Whether the audio data are loaded to RAM or will be streamed from the hard disk.
+
+returns:: an instance of Boolean.
+
+METHOD:: synthDefTag
+The SonicObject proper SynthDef tag (this is used internally by SSG_AbstractSonicSource and its subclasses)
+
+returns:: an instance of Symbol.
+
+METHOD:: loaded
+Whether the audio data are loaded to RAM or not.
+
+returns:: an instance of Boolean.
+
+METHOD:: loadedCond
+A Condition object representing whether the audio data are loaded to RAM or not.
+
+returns:: an instance of Condition.
+
+Examples::
+
+code::
+
+SSG_SonicObject.test; // test object
+a = Platform.resourceDir +/+ "sounds/a11wlk01-44_1.aiff"; // path to a file
+b = SSG_SonicObject(a) // create a new SSG_SonicObject object
+b.play // play it back
+
+::

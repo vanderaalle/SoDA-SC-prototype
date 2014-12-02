@@ -1,0 +1,11 @@
+# SuperCollider extensions
+MathLib 
+Ambisonics Toolkit (ATK)
+CtK
+UniTesting (for testing)
+json
+SCMIR
+
+# Other
+curl (unix utility - used to access the CELI html API)
+

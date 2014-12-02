@@ -1,0 +1,18 @@
+TITLE:: SSG_AbstractSonicObject
+summary:: (part of SoundScapeGenerator) An abstract class for all vertices to inherit from.
+categories:: SoundScapeGenerator
+related:: SSG_SonicObject, SSG_NullSonicObject, SoundScapeGenerator.
+
+DESCRIPTION::
+An abstract class with no implemented functionality. SSG_AbstractSonicObject exists for purely architectural reasons, to implement subtype polymorphism and to make SSG_NullSonicObject and SSG_SonicObject types interchangeable syntactically.
+
+NOTE:: SSG_AbstactSonicObject is part of the SoundScapeGenerator (SSG) system, developed by Marinos Koutsomichalis (marinos@agxivatein.com) for the purposes of the Sound Design Accelator (SoDA) project, during his research fellowship inthe CIRMA, Univerista Degli Studi di Torino the period of 2013-2014. See SoundScapeGenerator for an overview of the whole system.::
+
+CLASSMETHODS::
+
+METHOD:: new
+Create a new SSG_AbstractSonicObject.
+
+returns:: a new SSG_AbstractSonicObject object.
+
+EXAMPLES::

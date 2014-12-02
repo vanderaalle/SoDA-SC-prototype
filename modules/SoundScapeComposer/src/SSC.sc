@@ -1,0 +1,230 @@
+// CIRMA, Univerista Degli Studi di Torino
+// developed by Marinos Koutsomichalis (marinos.koutsomichalis@unito.it)
+// (c) 2013-14
+
+// this file is part of the SoundScape Composer, which has been developed as part of the Sound Design Accelerator (SoDA) project
+
+
+SoundScapeComposer {
+
+
+	// member variables
+
+	// organicDb
+	var < organicDb;          // (SSC_OrganicDb) the processed organicDb
+	var search;             // (String) the search string
+	var < interpreter;        // (SSC_Interpreter)
+
+	// paths
+	var atmosPath;
+	var sequencesPath;
+	var atomsPath;
+	var tempDirectory;
+
+
+	var duration;          // (Number) total duration
+
+	var ready;              // (Boolean) is ready?
+	var readyCond;          // (Condition) is ready ?
+
+	var < sonicSpace;
+	var < runner;
+
+
+	// ===================== new/init =======================
+
+	*initClass {
+		// init all SSC related herein
+		// Class.initClassTree(SSG_Runner);
+		Class.initClassTree(SSC_OrganicDb);
+		Class.initClassTree(SSC_Interpreter);
+		Class.initClassTree(FoaDecoderMatrix);
+	}
+
+	// ===================== new/init =======================
+
+	*new{ arg
+		search = "", // (String) Should be the search string
+		duration = 100,     // (Number) the final duration
+		decoder,
+		// maxEntries = 100, maxSimilarEntries = 10, maxAtomsPerSequence = 10, maxAtmos = 1
+		density = 2,         // (Integer) how many simultaneous different events (approximation)
+		spread = 200,        // (Number) spatial spread of soundscape
+		correlation = false; // (Boolean) true will result in semantically relevant events to be temporally grouped together (if possible)
+
+		^super.new.pr_init(search, duration, decoder, density, spread,
+			correlation);
+	}
+
+	pr_init{
+		arg search_, duration_, decoder, density, spread, correlation;
+
+		// perform type check
+		case
+		{ search_.isKindOf(String).not} {
+			Error("SSC: 'search' argument should be an instance of String").throw }
+		{duration_.isKindOf(Number).not} {
+			Error("SSC: argument 'duration' should be an instance of Number").throw;}
+		{decoder.class!=FoaDecoderMatrix} {
+			Error("SSC: argument 'decoder' should be an instance of FoaDecoderMatrix").throw;}
+		{density.isKindOf(Number).not} {
+			Error("SSC: argument 'density' should be an instance of Integer").throw;}
+		{spread.isKindOf(Number).not} {
+			Error("SSC: argument 'spread' should be an instance of Number").throw;}
+		{correlation.isKindOf(Boolean).not} {
+			Error("SSC: argument 'correlation' should be an instance of Boolean").throw;};
+
+		search = search_;
+		duration = duration_;
+
+		ready = false;
+		readyCond = Condition(false);
+
+		fork{
+			var maxEntries;  // used to decide how many entries should be acquired
+			var breakIndex = 50; // for the recursive functions that deal with the auxilary folders etc
+			var directoryCond = Condition(false); // to know when the directory is ready
+			var condition = Condition(false); // Condition to control flow
+
+
+			// create temporary Directory
+			tempDirectory = (PathName(thisProcess.nowExecutingPath).pathOnly.asString +/+ Date.getDate.asSortableString ++ "_" ++ UniqueID.next.asString).asString ++ "/";
+			// tempDirectory.postln;
+
+			{ // recursive Function here
+				var func = thisFunction;
+				("mkdir " ++ tempDirectory.asUnixPath).unixCmd({
+					arg code;
+					if (code!=0) {
+						if (breakIndex > 0) {
+							"SSC: error creating temporary directory - trying again.".postln;
+							breakIndex = breakIndex - 1;
+							thisFunction.value();
+						} {
+							Error("SSC: temporary folder could not be created after 50 tries. Maybe the scripts lacks proper permissions?").throw;
+						}
+					} {
+						"SSC: Temporary Directory succesfully created.".postln;
+						directoryCond.test_(true);
+						directoryCond.signal;
+					}
+				});
+			}.value;
+
+			directoryCond.wait;
+
+			// declare paths
+			atmosPath = tempDirectory ++ "atmospheres.json";
+			sequencesPath = tempDirectory ++ "sequences.json";
+			atomsPath = tempDirectory ++ "atoms.json";
+
+			// a new empty OrganicDb
+			organicDb = SSC_OrganicDb(tempDirectory);
+
+			// calculate how many entries are needed based on the assumption that each event will approximately last 25 seconds
+			maxEntries = ((duration/25) * density).trunc.asInteger;
+			// maxSequences = densityFactor; // maximum number of sequences are needed approximately (not counting atoms)
+			// maxAtoms = densityFactor * 10;
+			// maximum number of Atoms (based on the assumption that there are a family of relevant atoms consists of 10 elements)
+
+			// ** NOTE THAT ENTRIES ARE ALSO EVALUATED IN SSC_OrganicDb SO THAT NO MORE THAT maxEntries ARE ALLOWED
+
+			// populate with atmospheres ** ONLY 1 ATMOSPHERE IS ASKED
+			"SSC: Populating Dbase with atmospheres".postln;
+			SSC_Acquire.acquireDataFile(search,["%2BtypeOfSoundObject_Atmos"], 1, path:atmosPath, doneFunction: {
+				"SSC: Atmospheres retrieved".postln;
+				organicDb.addData(atmosPath);
+				condition.test_(true);
+				condition.signal;
+			});
+
+			condition.test_(false);
+			condition.signal;
+			condition.wait;
+
+			// *** currently 10000 entries are asked, in the future this should be changed to just the total of existed documents
+
+			// populate with atoms
+			"SSC: Populating Dbase with atoms".postln;
+			SSC_Acquire.acquireDataFile(search,["%2BtypeOfSoundObject_Atom"],10000, path:atomsPath, doneFunction: {
+				"SSC: Atoms retrieved".postln;
+				organicDb.addData(atomsPath);
+				condition.test_(true);
+				condition.signal;
+			});
+
+			condition.test_(false);
+			condition.signal;
+			condition.wait;
+
+			// populate with sequences
+			"SSC: Populating Dbase with sequences".postln;
+			SSC_Acquire.acquireDataFile(search,["%2BtypeOfSoundObject_Sequence"],10000, path:sequencesPath, doneFunction: {
+				"SSC: Sequences retrieved".postln;
+				organicDb.addData(sequencesPath);
+				condition.test_(true);
+				condition.signal;
+			});
+
+			condition.test_(false);
+			condition.signal;
+			condition.wait;
+
+			// first parse all data
+			"SSC: Parsing and preprocessing database".postln;
+			// organicDb.prepare(densityFactor + 1,10,1).wait; // *** densityFactor should be augmented by the number of Atmospheres used, maxAtomsPerSequence is 10 and maxAtmos 1
+			organicDb.prepare(maxEntries,10,1);
+
+
+			"SSC: Downloading audiofiles".postln;
+			// download audiofiles
+			organicDb.downloadFiles.wait;
+
+			// analyze
+			"SSC: analyzing entries and constructing behavior lists".postln;
+			organicDb.analyze.wait;
+
+			// interpet
+			interpreter = SSC_Interpreter(organicDb);
+			sonicSpace = [
+				interpreter.interpret(duration, density, spread, correlation);
+			];
+
+			// create Runner
+			runner = SSG_Runner(
+				sonicSpace,  // sonicSpace
+				SSG_FixedListener(0@0@2,spread*1.5), // a new static listener
+				decoder  // the decoder
+			);
+
+			"ok".postln;
+
+			ready = true;
+			readyCond.test_(true);
+			readyCond.signal;
+		};
+		^this;
+	}
+
+	// ===================== public methods =======================
+
+	// ========================== bounce =============================
+
+	bounce{
+		var filePath = (organicDb.auxilaryFolderPath ++ "Audio Bounce " ++ Date.getDate.asSortableString ++ "_" ++ UniqueID.next.asString).asString ++ ".aiff";
+		// filePath.postln;
+		fork {
+			readyCond.wait;
+			"SSC: Now bouncing audio.".postln;
+			runner.bounce(duration,filePath);
+		}
+	}
+
+	clean{
+
+		// delete auxilary folder
+
+	}
+	// ===================== load/retrieve data =======================
+
+}

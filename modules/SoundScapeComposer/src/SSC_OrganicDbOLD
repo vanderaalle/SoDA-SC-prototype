@@ -1,0 +1,593 @@
+// CIRMA, Univerista Degli Studi di Torino
+// developed by Marinos Koutsomichalis (marinos.koutsomichalis@unito.it)
+// (c) 2013-14
+
+// this file is part of the SoundScape Composer, which has been developed as part of the Sound Design Accelerator (SoDA) project
+
+// This class parses, analyses and preprocesses an Organic Database and exports a behavior list
+
+
+SSC_OrganicDb {
+
+	// member variables
+
+	var < databasePath;  // (String) the path to the database
+	var < organicDbPath; // (String) the path to the processed database folder (including all sound files and relevant files)
+
+
+	// public member variables
+	var < rawData;        // (Dictionary) the raw data
+	var < entries;        // (Array) all File Entries
+	var < query;          // (Dictionary) Header with query info 
+
+	var < sequences;     // (Array of Dictionary) SonicSequences
+	var < atoms;         // (Array of Dictionary) Atoms grouped upon relevance
+	var < atmos;         // (Array) Atmospheres
+
+	var < groupedSequences;  // (Array of Array of Dictionary) grouped according to correlation
+	var < groupedAtoms;      // (Array of Array of Dictionary) grouped according to correlation
+
+	var < completions;       // (Array of String) a list of all completions made to construct the behaviorlist (used mostly for debugging)
+
+	var < ready;           // (Boolean) is database ready?
+	var < readyCond;       // (Condition) is database ready?
+
+	var auxilaryFolderReadyCond; // (Condition) is the auxilaryfolder ready?
+
+
+	// ===================== initClass =======================
+
+	*initClass {
+		Class.initClassTree(JSONFileReader);
+	}
+
+
+	// ===================== new/init =======================
+
+	*new{ arg database;  // the path to the database
+
+		^super.new.pr_init(database);
+	}
+
+	pr_init{ arg database_;
+
+		var breakIndex = 50; // for the recursive functions that deal with the auxilary folders etc
+
+		// type check
+		case 
+		{ database_.isKindOf(String).not && (PathName(database_).extension != "json") && PathName(database_).isFile.not}
+		{ Error("SSC_Parser: 'database' argument should be an instance of String pointing at a json file").throw};
+
+		databasePath = database_;
+		ready = false;
+		readyCond = Condition(false);
+
+		// condition to be update when the auxilary folders are ready
+		auxilaryFolderReadyCond = Condition.new(false);
+
+		// create a folder to save all auxilary files there and copy organicDb there
+		// define auxilary folder path
+		organicDbPath = (PathName(databasePath).pathOnly +/+ Date.getDate.asSortableString ++ "_" ++ UniqueID.next.asString).asString ++ "/";
+		
+		// create auxilary folder and copy database there
+		{ // recursive Function here
+			var func = thisFunction;
+			("mkdir " ++ organicDbPath.asUnixPath).unixCmd({
+				arg code; 
+				if (code!=0) {
+					if (breakIndex > 0) {
+						"SSC_OrganicDb: error creating directory - trying again.".postln;
+						breakIndex = breakIndex - 1;
+						thisFunction.value(); 
+					} {
+						Error("SSC_OrganicDb: auxilary folder could not be created after 50 tries. Something is probably wrong..").throw;
+					}
+				} {
+					"SSC_OrganicDb: Directory succesfully created.".postln;
+					
+					// now copy Dbase
+					breakIndex = 50;
+					{ // recursive Function here
+						var func = thisFunction;
+						("cp " ++ databasePath.asUnixPath ++ " " 
+							++ organicDbPath.asUnixPath).unixCmd({
+								arg code; 
+								if (code!=0) {
+									if (breakIndex > 0) {
+										"SSC_OrganicDb: error copying Dbase to directory - trying again.".postln;
+										breakIndex = breakIndex - 1;
+										thisFunction.value(); 
+									} {
+										Error("SSC_OrganicDb: database could not be copied to the auxilary folder after 50 tries. Something is probably wrong..").throw;
+									}
+								} {
+									"SSC_OrganicDb: Dbase sucessfully copied.".postln;
+									// update databasePath
+									databasePath = organicDbPath ++ 
+									PathName(databasePath).fileName.asString;
+
+									// update condition
+									auxilaryFolderReadyCond.test_(true);
+									auxilaryFolderReadyCond.signal;
+								}
+							});
+					}.value; 
+				}
+			})}.value; 
+		
+		^this;
+	}
+
+	// ===================== parse =======================
+
+	prepare{ arg maxEntries = 100, maxSimilarEntries = 10, maxAtomsPerSequence = 10, maxAtmos = 1;
+		
+		fork{
+			
+			"Waiting auxilary folder to be created..".postln; 
+			auxilaryFolderReadyCond.wait;
+
+			"OrganicDb: Now parsing and pre-processing database".postln;
+			
+			rawData = JSONFileReader.read(databasePath;)["result"];
+			// query = rawData["query"];  	
+			
+			entries = (rawData["documents"]).deepCopy; // so that rawData is kept intact
+			
+			// clean up and preprocess
+			entries.do{arg item; 
+				
+				var additionalTags;
+				
+				// remove irrelevant tags
+				item.removeAt("collectionNameSoda");
+				item.removeAt("contents_lemma_en");
+				item.removeAt("contents_text_en");
+				item.removeAt("highlightedText");
+				item.removeAt("luceneDocId");
+				item.removeAt("periodEndYear");
+				item.removeAt("periodStartYear");
+				item.removeAt("tags");
+				item.removeAt("uuid");
+				
+				// add address to the file's distant location
+				item.put("downloadPath", item["url"]++item["title"]);
+				item.put("filePath", organicDbPath++item["title"]);
+
+				// search for additional tags and add them as entries
+				additionalTags = (item["classes"].collect{arg j; j["additionalInfo"]}).flatten;
+				additionalTags = additionalTags.do{
+					arg i; 
+					item.put(
+						i["firstElem"].replace("http://arcadia.celi.it/ontologies/soda#",""), 
+						i["secondElem"].replace("^^http://www.w3.org/2001/XMLSchema#decimal","")
+					)
+				};		
+
+				item.removeAt("classes");
+				item.removeAt("classesExtended");
+			};
+
+			// save data according to type
+			sequences = entries.select{arg i; i["typeOfSoundObject"]=="Sequence"};
+			atmos = entries.select{arg i; i["typeOfSoundObject"]=="Atmos"};
+			atoms = entries.select{arg i; i["typeOfSoundObject"]=="Atom"};
+			
+			// first filter so that organicDb is shrinked
+			"OrganicDb: Filtering database.".postln;
+			this.pr_filter(maxEntries, maxSimilarEntries, maxAtomsPerSequence, maxAtmos).wait;			
+
+			"OrganicDb: Now downloading audio-files from the server".postln;
+			this.pr_downloadFiles().wait;
+
+			"OrganicDb: Now analyzing audio-files..".postln;
+			// this.pr_analyze().wait;
+
+			"OrganicDb: Now updating database and creating behavior lists".postln;
+			this.pr_update().wait;
+			"OrganicDb: done".postln;
+			
+			ready = true;
+			readyCond.test_(true);
+			readyCond.signal;
+		};
+	}
+
+	// ===================== selecting =======================
+	
+	pr_filter{ 
+
+		arg maxEntries, maxSimilarEntries, maxAtomsPerSequence, maxAtmos;
+
+		var condition = Condition(false);     // Condition to notify external processes
+
+		// type check 
+		if (maxEntries < 10 ) {Error("OrganicDb: 'maxEntries' argument cannot be less than 10, else an infinite loop will occur").throw};
+		
+		
+		fork{
+			
+			// filter atmospheres
+			if (atmos.size > maxAtmos) {
+				atmos = (atmos.scramble)[(1..maxAtmos)];
+			};
+
+			this.pr_groupEntries(); // create groupedSequences and groupedAtoms
+
+			// filter out superfluous sequences
+			groupedSequences.do{ 
+				arg item; 
+				if (item.size > maxSimilarEntries) {
+					item = (item.scramble)[(1..maxSimilarEntries)];
+				}
+			};
+			sequences = groupedSequences.flatten; // flatten
+
+			// filter out superfluous atoms
+			groupedAtoms.do{ // filter out superfluous items
+				arg item; 
+				if (item.size > maxAtomsPerSequence) {
+					item = (item.scramble)[(1..maxAtomsPerSequence)];
+				}
+			};
+			atoms = groupedAtoms.flatten; // flatten
+
+			// scramble entries (this is necessary to avoid only deleting the last entries subsequently)
+			groupedAtoms = groupedAtoms.scramble;
+			sequences = sequences.scramble;
+			groupedAtoms = groupedAtoms.scramble;
+
+			// update entries
+			entries = atmos ++ sequences ++ groupedAtoms.flatten;
+
+			// if more than allowed entries delete some
+			while ({entries.size > maxEntries}, {
+				// order entries according to population;
+				var order = [atmos, groupedAtoms, sequences].sort({
+					arg a,b; a.size > b.size;
+				});
+				
+				// delete elements (elements with bigger populations get more elements deleted)
+				if (order[0].size>5) { // make sure at least 2 remain
+					3.do{order[0].pop}; // remove 3 elements
+				};
+				if (order[1].size>4) { // make sure at least 2 remain
+					2.do{order[1].pop}; // remove 2 elements
+				};
+				if (order[2].size>3) { // make sure at least 2 remain
+					order[2].pop; // remove 2 elements
+				};
+				// update entries
+				entries = atmos ++ sequences ++ groupedAtoms.flatten;
+			});
+
+			// update after the changes  
+			atoms = groupedAtoms.flatten;
+			
+			// * at this point groupedSequences contains a wrong number of sequences but it will be re-calculated at some later stage 
+
+			condition.test_(true);
+			condition.signal;
+		};
+
+		^condition;
+	}
+
+	// ===================== download files =======================
+	
+	pr_downloadFiles{
+		var condition = Condition(false);     // Condition to notify external processes
+		var condInternal = Condition(false); // Condition to notify internal processes
+
+
+		// download all entries
+		fork{
+			entries.do{
+				arg item; 
+
+				var fileName = organicDbPath ++ item["title"];
+
+				condInternal.test_(false);
+				condInternal.signal;
+				
+				("OrganicDb: Now downloading " ++ item["title"]).postln;
+				("curl -o " ++ fileName.asUnixPath ++ " " ++ item["downloadPath"].asUnixPath).unixCmd({
+					"OrganicDb: done !".postln;
+					condInternal.test_(true);
+					condInternal.signal;
+				});	
+				condInternal.wait;
+			};
+			
+			condition.test_(true);
+			condition.signal;
+		};
+		
+		^condition;
+	}
+
+
+	// ===================== preprocess =======================
+
+	pr_analyze {
+
+		// use FEUTIL to add spectral and other information
+
+	}
+
+	pr_update{
+
+		// construct behavior lists and perform conversions whenever applicable
+
+		var condition = Condition.new(false);
+
+		fork{
+
+			// construct behavior list for each entry - defaults are given for those cases where values are not found or are erroneous
+
+			// all entries
+
+			atmos.do{
+				arg item;
+				this.pr_completeAtmos(item);
+			};
+
+			// sequences
+			sequences.do{
+				arg item; 
+				this.pr_completeSequence(item);
+			};
+
+			// atoms
+			atoms.do{
+				arg item;
+				// atoms need both sequence and atom completion
+				this.pr_completeSequence(item); 
+				this.pr_completeAtom(item);
+
+			};
+			
+			this.pr_groupEntries(); // group entries again
+
+			condition.test_(true);
+			condition.signal;
+		};
+
+		^condition;
+	}
+
+	pr_groupEntries {
+		
+		// group entries according to correlation
+
+		// sequence
+		groupedSequences = nil; // delete prevously groupedSequences
+		while ({ sequences.size > 0 }, { 			// group sequences according to relevance
+			// group and copy relevant sequences 
+			groupedSequences = groupedSequences.add(
+				sequences.select{arg i; 
+					i["description"]==sequences[0]["description"]
+				});
+			
+			// delete them
+			sequences = sequences.reject{arg i; 
+				i["description"]==sequences[0]["description"]
+			};		
+		});
+		sequences = groupedSequences.flatten; // rename 
+		
+		// atoms
+		
+		groupedAtoms = nil;
+		// group atoms according to relevance !!	
+		while ({ atoms.size > 0 }, {
+			// group and copy relevant atoms 
+			groupedAtoms = groupedAtoms.add(
+				atoms.select{arg i; 
+					i["description"]==atoms[0]["description"]
+				});
+			// delete them
+			atoms = atoms.reject{arg i; 
+				i["description"]==atoms[0]["description"]
+			};	
+		});
+		atoms = groupedAtoms.flatten;
+
+		entries = atmos ++ sequences ++ atoms;
+	}
+
+	// ================== hard-coded rules for behavior-lists ==========
+
+	pr_completeAtmos{ arg item; 
+		// create behavior List for atmo-specific rules
+		
+		// relative amplitude
+		if ( item["relativeAmplitude"].isNil) { // if nil
+			// use default value and register change
+			item["relativeAmplitude"] = 0.5; 
+			completions = completions.add(item["title"].asString 
+				++ " -> " ++ "'relativeAmplitude' set to 0.5");
+		} { // else if out of range
+			if (item["relativeAmplitude"].asFloat.inRange(0,1).not){
+					// use default value and register change
+					item["relativeAmplitude"] = 0.5; 
+					completions = completions.add(item["title"]
+						.asString ++ " -> " ++ 
+						"'relativeAmplitude' set to 0.5");
+				} { // else simply convert and use as is
+					item["relativeAmplitude"] = 
+					item["relativeAmplitude"].asFloat;
+				}
+		};
+	}
+
+	pr_completeSequence{ arg item; 
+		// create behavior List for sequence-specific rules
+
+		// relative amplitude
+		if ( item["relativeAmplitude"].isNil) { // if nil
+			// use default value and register change
+			item["relativeAmplitude"] = 0.5; 
+			completions = completions.add(item["title"].asString 
+				++ " -> " ++ "'relativeAmplitude' set to 0.5");
+		} { // else if out of range
+			if (item["relativeAmplitude"].asFloat.inRange(0,1).not){
+					// use default value and register change
+					item["relativeAmplitude"] = 0.5; 
+					completions = completions.add(item["title"]
+						.asString ++ " -> " ++ 
+						"'relativeAmplitude' set to 0.5");
+				} { // else simply convert and use as is
+					item["relativeAmplitude"] = 
+					item["relativeAmplitude"].asFloat;
+				}
+		};
+
+		// rangeOfMovement
+		if ( item["rangeOfMovement"].isNil) { // if nil
+			// use default value and register change
+			item["rangeOfMovement"] = [0,0,0]; 
+			completions = completions.add(item["title"].asString 
+				++ " -> " ++ "'rangeOfMovement' set to [0,0,0]");
+		} { // else if not an array with 3 elements
+			if ((item["rangeOfMovement"].interpret.class!=Array).not){
+				// use default value and register change
+				item["rangeOfMovement"] = [0,0,0]; 
+				completions = completions.add(item["title"].asString 
+					++ " -> " ++ "'rangeOfMovement' set to [0,0,0]");
+				} { 
+					if ((item["rangeOfMovement"].interpret.size==3).not){
+						// use default value and register change
+						item["rangeOfMovement"] = [0,0,0]; 
+						completions = completions.add(item["title"].asString 
+							++ " -> " ++ "'rangeOfMovement' set to [0,0,0]");
+					} {
+						// else simply convert and use as is
+						item["rangeOfMovement"] = 
+						item["rangeOfMovement"].interpret.abs; // abs to compensate for things like [0-10,0-10,0-10]
+					}
+				}
+		};
+
+		// speed of movement
+		if ( item["speedOfMovement"].isNil) { // if nil
+			// use default value and register change
+			item["speedOfMovement"] = 0.4;  
+			completions = completions.add(item["title"].asString 
+				++ " -> " ++ "'speedOfMovement' set to 0.4");
+		} { // else if out of range
+			if (item["speedOfMovement"].asFloat.inRange(0,1).not){
+				// use default value and register change
+				item["speedOfMovement"] = 0.4; 
+				completions = completions.add(item["title"]
+					.asString ++ " -> " ++ 
+					"'speedOfMovement' set to 0.4");
+			} { // else simply convert and use as is
+				item["speedOfMovement"] = 
+				item["speedOfMovement"].asFloat;
+			}
+		};	
+
+		// acceleration
+		if ( item["acceleration"].isNil) { // if nil
+			// use default value and register change
+			item["acceleration"] = "absolute";  
+			completions = completions.add(item["title"].asString 
+				++ " -> " ++ "'acceleration' set to 'absolute'");
+		} { // else if out of range
+			if ((item["acceleration"] != "absolute") 
+				&& (item["acceleration"] != "angular")
+				&& (item["acceleration"] != "coriolis") ){
+				// use default value and register change
+				item["acceleration"] = "absolute";  
+				completions = completions.add(item["title"].asString 
+				++ " -> " ++ "'acceleration' set to 'absolute'");
+			} { // else simply convert and use as is
+				item["acceleration"] = 
+				item["acceleration"];
+			}
+		};	
+
+		// typeOfShot
+		if ( item["typeOfShot"].isNil) { // if nil
+			// use default value and register change
+			item["typeOfShot"] = "CU";  
+			completions = completions.add(item["title"].asString 
+				++ " -> " ++ "'typeOfShot' set to 'CU'");
+		} { // else if out of range
+			if ((item["typeOfShot"] != "CU") 
+				&& (item["typeOfShot"] != "MS")
+				&& (item["typeOfShot"] != "LS") ){
+				// use default value and register change
+				item["typeOfShot"] = "CU";  
+				completions = completions.add(item["title"].asString 
+				++ " -> " ++ "'typeOfShot' set to 'CU'");
+			} { // else simply convert and use as is
+				item["typeOfShot"] = item["typeOfShot"];
+			}
+		};	
+
+		// size
+		if ( item["size"].isNil) { // if nil
+			// use default value and register change
+			item["size"] = 0.2;  
+			completions = completions.add(item["title"].asString 
+				++ " -> " ++ "'size' set to 0.2");
+		} { // else simply convert and use as is
+			item["size"] = 
+			item["size"].asFloat;
+		};
+
+		// speed of movement
+		if ( item["repeatable"].isNil) { // if nil
+			// use default value and register change
+			item["repeatable"] = 0;  
+			completions = completions.add(item["title"].asString 
+				++ " -> " ++ "'repeatable' set to 0");
+		} { // else simply convert and use as is
+			item["repeatable"] = 
+			item["repeatable"].asFloat.asInteger;
+		};	
+
+	}
+
+	pr_completeAtom{ arg item; 
+		// create behavior List for atom-specific rules
+		
+		// frequency
+		if ( item["frequency"].isNil) { // if nil
+			// use default value and register change
+			item["frequency"] = 300;  
+			completions = completions.add(item["title"].asString 
+				++ " -> " ++ "'frequency' set to '300'");
+		} { // else if out of range
+			if (item["frequency"].asFloat.inRange(0,10000).not) {
+				// use default value and register change
+				item["frequency"] = "300";  
+				completions = completions.add(item["title"].asString 
+				++ " -> " ++ "'frequency' set to '300'");
+			} { // else simply convert and use as is
+				item["frequency"] = item["frequency"].asFloat;
+			}
+		};	
+
+		// concatenation
+		if ( item["concatenation"].isNil) { // if nil
+			// use default value and register change
+			item["concatenation"] = 3;  
+			completions = completions.add(item["title"].asString 
+				++ " -> " ++ "'concatenation' set to '3'");
+		} { // else if out of range
+			if (item["concatenation"].asInteger.inRange(0,20).not) {
+				// use default value and register change
+				item["concatenation"] = "3";  
+				completions = completions.add(item["title"].asString 
+				++ " -> " ++ "'concatenation' set to '3'");
+			} { // else simply convert and use as is
+				item["concatenation"] = item["concatenation"].asInteger;
+			}
+		};	
+	}
+
+}
+

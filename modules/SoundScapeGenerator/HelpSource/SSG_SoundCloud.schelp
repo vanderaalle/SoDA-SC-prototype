@@ -1,0 +1,53 @@
+TITLE:: SSG_SoundCloud
+summary:: A sonic cloud (a complex sonic event).
+categories:: SoundScapeGenerator
+related:: SSG_AbstractSonicSource, SSG_FixedSound, SSG_SonicAtmosphere, SSG_AmbulatorySoundEnv, SSG_SoundCloud, SoundScapeGenerator.
+
+
+DESCRIPTION::
+SSG_SoundCloud models a complex sonic event consisting of multiple appearances of similar sonic sequences at ever-changing and random positions within a given cubic area and with respect to a density factor.  SSG_SoundCloud may be used to model sounds events such as a crowd of people, a group of bees or the rain, wherein instances of similar sound sequences occur in ever-varying positions within a certain area.
+
+NOTE:: SSG_AbstactSonicSource is part of the SoundScapeGenerator (SSG) system, developed by Marinos Koutsomichalis (marinos@agxivatein.com) for the purposes of the Sound Design Accelator (SoDA) project, during his research fellowship inthe CIRMA, Univerista Degli Studi di Torino the period of 2013-2014. See SoundScapeGenerator for an overview of the whole system.::
+
+
+CLASSMETHODS::
+
+METHOD:: new
+Constructs and returns a new SSG_SoundCloud object. Returns: a new SSG_SoundCloud object
+
+ARGUMENT:: sequence
+Should be an instance of SSG_Sequence or a singleton SSG_SonicObject.
+
+ARGUMENT:: pWait
+Should be an instance of ListPattern with a list comprised of only Integer or Float objects or of other ListPattern objects that recursively respect this rule. Patterns of arbitrarily complexity may be used. pWait defines the time durations between subsequent appearances of the sequence. Note that these time durations represent the interval between the end of a sequence and it's re-appearence, once triggered a sequence will play up to its end.	
+
+ARGUMENT:: size
+An instance of Number defining the size of the SonicSource in the virtual SoundScape model (in meters).
+
+ARGUMENT:: position
+An instance of Cartesian denoting the positioning of the left/down/front corner of the cubic cloud area.
+
+ARGUMENT:: bounds
+An instance of Cartesian denoting the dimensions of the sonic cloud.
+
+ARGUMENT:: density
+An instance of Integer denoting the number of simultaneous sonic sequences at any given moment. Note that the density is stochastically calculated within a range of (density*0.8).floor-density.
+
+ARGUMENT:: label
+A user-defined name for the SSG_AbstractSonicSource object. it should be an instance of Symbol.
+
+ARGUMENT:: info
+A user-defined information text stored with the object. Should be an instance of String.
+
+returns:: a new SSG_SoundCloud object.
+
+INSTANCEMETHODS::
+
+
+Private:: pr_sub_sub_init
+
+EXAMPLES::
+
+code::
+(some example code)
+::

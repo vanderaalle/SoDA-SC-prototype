@@ -1,0 +1,182 @@
+TITLE:: SSG_Sequence
+summary:: (part of SoundScapeGenerator) An abstraction of complex sonic events.
+categories:: SoundScapeGenerator
+related:: SSG_SonicObject, SoundScapeGenerator.
+
+DESCRIPTION::
+Given patterns (instances of ListPattern) of arbitrarily complexity that define a succession of SSG_SonicObject  objects and their desired durations respectively, a SSG_Sequence object defines a chunk of sequenced audio. The audio pointed to by a SSG_SonicObject will be looped or truncated accordingly to match the desired duration. 
+
+NOTE:: SSG_SonicObject is part of the SoundScapeGenerator (SSG) system, developed by Marinos Koutsomichalis (marinos@agxivatein.com) for the purposes of the Sound Design Accelator (SoDA) project, during his research fellowship inthe CIRMA, Univerista Degli Studi di Torino the period of 2013-2014. See SoundScapeGenerator for an overview of the whole system.::
+
+CLASSMETHODS::
+
+METHOD:: new
+Constructs and returns a new SSG_Sequence object. Note that all arguments should comply to the very strict type-checking rules that are described below. Returns: An instance of a SSG_Sequence.
+
+ARGUMENT:: pSonicObject
+An instance of ListPattern with a list comprised of only SSG_AbstractSonicObject objects or of nil or of other ListPattern objects that recursively respect this rule. Nested Pattern of arbitrarily complexity may be used. pSonicObject defines WHAT the next SSG_AbstractSonicObject object will be once SSG_Sequence is asked to either play (in RT mode) or export a score (in NRT mode). 
+
+ARGUMENT:: pDur
+An instance of ListPattern with a list comprised of only Integer or Float objects or of other ListPattern objects that recursively respect this rule. Patterns of arbitrarily complexity may be used. pDur defines WHEN the next SSG_AbstractSonicObject object will be scheduled for playback. 
+
+ARGUMENT:: fadeTime
+The duration of the cross-fades between subsequent SSG_AbstractSonicObject objects. fadeTime guarantees that no clicks/pops/etc occur on transitions between subsequent objects.
+
+ARGUMENT:: label
+just a user-defined label. It should be an instance of Symbol.
+
+ARGUMENT:: info
+a user-defined information text stored with the object.
+
+returns:: A SSG_Sequence object.
+
+PRIVATE:: initClass
+
+
+INSTANCEMETHODS::
+
+METHOD:: setInfo
+Sets new info text.
+
+ARGUMENT:: info_
+The new desired text. Should be an instance of String.
+
+returns:: this SSG_Sequence object.
+
+METHOD:: play
+Playbacks the sequence in real-time.
+
+ARGUMENT:: outBus
+The outBus wherein audio should be written. Default is 0.
+
+ARGUMENT:: group
+The target group (could be an instance of CtkGroup or Group or Integer (denoting the node)). Default is 0.
+
+returns:: this SSG_Sequence object.
+
+METHOD:: setPSonicObject
+Sets a new SSG_SonicObject pattern.
+
+ARGUMENT:: pSonicObject_
+Should be an instance of ListPattern with a list comprised of only SSG_AbstractSonicObject objects or of nil or of other ListPattern objects that recursively respect this rule. Nested Pattern of arbitrarily complexity may be used.
+
+returns:: this SSG_Sequence object.
+
+METHOD:: nextDur
+Returns the next duration as a instance Float. This method is to be used only for testing purposes and under normal circumstances should not be called by the client. 
+
+returns:: an instance of Float.
+
+METHOD:: donePlayingCond
+An instance of Condition reflectng the current playback state (in RT mode).
+
+returns:: An instance of Condition.
+
+METHOD:: reset
+Resets pDur and pSonicObject so that playback will start from scratch next time play is invoked. 
+
+returns:: this SSG_Sequence object.
+
+METHOD:: setLabel
+sets a new label.
+
+ARGUMENT:: label_
+The new label (should be an instance of Symbol).
+
+returns:: this SSG_Sequence object.
+
+PRIVATE:: pr_init
+
+METHOD:: nextSonicObject
+Returns the next SonicObject object. This method is only here for testing purposes and under normal circumstances should not be called by the client.
+
+returns:: an instance of SSG_AbstractSonicObject (could be SSG_NullSonicObject).
+
+METHOD:: setPDur
+Sets a new duration ListPattern.
+
+ARGUMENT:: pDur_
+Should be an instance of ListPattern with a list comprised of only Integer or Float objects or of other ListPattern objects that recursively respect this rule. Patterns of arbitrarily complexity may be used.
+
+returns:: this SSG_Sequence object.
+
+METHOD:: label
+The label of the object.
+
+returns:: an instance of Symbol
+
+METHOD:: donePlaying
+Indicates whether the object is currently playing (in RT mode). 
+
+returns:: a Boolean object.
+
+METHOD:: info
+The user-defined text for the object 
+
+returns:: a String object.
+
+METHOD:: fadeTime
+Answers what the duration of the cross-fades will be. 
+
+returns:: an instance of Float.
+
+METHOD:: stop
+Stops playback in RT mode.
+
+returns:: this SSG_Sequence object.
+
+METHOD:: id
+The unique id of the object 
+
+returns:: An instance of Integer.
+
+METHOD:: setFadeTime
+Sets a new duration for the cross-fades. 
+
+ARGUMENT:: fadeTime_
+The new desired duration (Float).
+
+returns:: this SSG_Sequence object.
+
+METHOD:: exportScore
+Exports a score (This is normally called by SSG_Runner in NRT mode).
+
+ARGUMENT:: timeOffset
+A time offset in seconds (Number)
+
+ARGUMENT:: maxDuration
+The maximum allowed duration (Number) of the score (useful to deal when pDur stands for a Stream of of infinite length).
+
+ARGUMENT:: outBus
+The ouput bus of the Score. Should be an instance of CtkAudio, Bus or Integer.
+
+ARGUMENT:: group
+The destination group for the notes in the Score. Should be an instance of CtkGroup, Group or Integer.
+
+returns:: a CtkScore object.
+
+
+EXAMPLES::
+
+code::
+// a new SSG_Sequence object
+a = Platform.resourceDir +/+ "sounds/a11wlk01-44_1.aiff";
+b = SSG_SonicObject.new(a);
+c = SSG_Sequence.new(
+			Pseq([b,nil,Prand([b,nil],2),nil],inf), // pSonicObject
+			Prand([1,2,Prand([3,4],2)],inf),  // pDur
+			0.7,  // fadeTIme
+			\aChunk, // label
+			"this is a test SSG_Sequence object" // info
+		);
+
+
+c.play; // play it
+
+d = c.exportScore(0,60); // export a score
+
+// play the score
+Server.waitForBoot({ 
+	d.play;
+});
+::
