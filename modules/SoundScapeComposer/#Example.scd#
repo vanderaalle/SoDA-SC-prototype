@@ -1,33 +1,20 @@
 
+// to install:
 // !!! REMEMBER TO CHANGE THE WAY FILEPATHS ARE SET BEFORE DEPLOYMENT TO THE SERVER
+// make a nice script
 
 // full Example
 ~ssc = SoundScapeComposer.new("cars birds Berlin", 240, \stereo, 3, 100)
 
 ~ssc.bounce()
 
-a = ~ssc.organicDb
-a.entries.size
+a = ~ssc.sonicSpace
 
-a.air[0]["filePath"]
-
-a = "ftp://91.212.167.101/Editing_v01/2_Foreground/1b_GenericSoundsSFX/"
-
-a[a.size-1]==$/
-
-a.sequences.size
-a.air.size
-a.atmos.size
-a.atoms.size
-
-a.air[0].keysValuesDo{arg k,v;
-	[k,v].postln;
+a[0].soundSources.do{arg i, j; 
+	j.postln; 
+	i.exportScore;
 }
 
-a.atoms[0].[0].keysValuesDo{
-	arg k,v; 
-	[k,v].postln;
-}
 
 // == test new API ===
 

@@ -18,7 +18,6 @@ SSC_Interpreter {
 	var	duration;
 	var	density;
 	var	spread;
-	var	correlation;
 
 	var densityFactor;  // a densityFactor used to some calculations
 	var zonePosition;     // (Cartesian) the absolute position of the SonicSpace
@@ -62,10 +61,10 @@ SSC_Interpreter {
 	interpret{ arg 
 		duration_ = 240,          // (Number) total duration of soundscape
 		density_ = 2,             // (Integer) how many simultaneous different events (approximation)
-		spread_ = 200,            // (Number) spatial spread of soundscape
-		correlation_ = false;     // (Boolean) true will result in semantically relevant events to be temporally grouped together (if possible) 
+		spread_ = 200;            // (Number) spatial spread of soundscape
 
-		var sequences, atmosphere, atoms, atmoObject;   // the sequences and the atmosphere
+		var sequences, air, atoms, airObject;   // the sequences and the atmosphere
+		var reverbProfile; // the reverb profile
 
 		// type check here
 		case
@@ -74,14 +73,11 @@ SSC_Interpreter {
 		{density_.isKindOf(Number).not} {
 			Error("SSC_Interpreter: argument 'density' should be an instance of Integer").throw;}
 		{spread_.isKindOf(Number).not} {
-			Error("SSC_Interpreter: argument 'spread' should be an instance of Number").throw;}
-		{correlation_.isKindOf(Boolean).not} {
-			Error("SSC_Interpreter: argument 'correlation' should be an instance of Boolean").throw;};
+			Error("SSC_Interpreter: argument 'spread' should be an instance of Number").throw;};
 
 		duration =duration_;
 		density = density_;
 		spread = spread_;
-		correlation = correlation_;
 
 		// absolute zonePosition
 		zonePosition = Cartesian(
@@ -91,43 +87,71 @@ SSC_Interpreter {
 		// bounds of sonicSpace
 		zoneBounds = spread@spread@spread;
 
-		// ================ atmo ============================
-		"SSC_Interpreter: Configuring Atmosphere.".postln;
+		// ================ air ============================
+		"SSC_Interpreter: Configuring Background.".postln;
 		// use just 1 atmo only for now
-		atmosphere = database.atmos[0]; // select the first atmosphere
-		atmoObject = SSG_SonicObject(atmosphere["filePath"], 
-					atmosphere["title"].asSymbol,
-					atmosphere["description"]
+		air = database.air[0]; // select the first atmosphere
+		airObject = SSG_SonicObject(air["filePath"], 
+					air["title"].asSymbol,
+					air["description"]
 				); 
-		atmosphere = SSG_SonicAtmosphere( 
+		air = SSG_SonicAtmosphere( 
 			SSG_Sequence(
-				Pseq([atmoObject],inf),
-				Pseq([atmoObject.duration],inf),
+				Pseq([airObject],inf),
+				Pseq([airObject.duration],inf),
 				10, // fadeTime
 			),
-			atmosphere["relativeAmplitude"],
-			atmosphere["title"].asSymbol,
-			atmosphere["description"],
+			air["relativeAmplitude"],
+			air["title"].asSymbol,
+			air["description"],
 		);
+
+		// ================ calculate reverb profile ==========
+
+		if (database.air[0]["typeOfSpace"]=="interior") {
+			reverbProfile = [spread,0.09,0.7,0.1,0.05];
+			"SSC_Interpreter: Interior space identified, using reverb profile".postln;
+		} {
+			reverbProfile = [spread,0,0,0,0];
+			"SSC_Interpreter: Exterior space identified, no reverb used".postln;
+		};
 
 		// ================ init sonicSpace ===================
 		"SSC_Interpreter: Initialize sonicSpace.".postln;
 		sonicSpace = SSG_SoundZone(
 			bounds: zoneBounds,  
 			position: zonePosition,
-			soundSources: [atmosphere], // with the atmosphere
+			soundSources: [air], // with the atmosphere & air
 			opacity: 1, 
 			filterSlope:1, 
-			reverbProfile: [spread,0.09,0.7,0.1,0.05] 
+			reverbProfile: reverbProfile
 		);
 
-		// ================ sequences ============================
 
-		// if (correlation) { // if true, attempt to group relevant events together (according to their description) 
-		// 	sequences = database.groupedSequences.flatten;
-		// } {
-		// 	sequences = database.sequences;
-		// };	
+		// ================ atmo ============================
+		"SSC_Interpreter: Configuring Midground.".postln;
+		database.atmos.do{
+			arg atmo;
+			var atmosphere = atmo;
+			var atmoObject = SSG_SonicObject(atmosphere["filePath"], 
+				atmosphere["title"].asSymbol,
+				atmosphere["description"]
+			); 
+			atmosphere = SSG_SonicAtmosphere( 
+				SSG_Sequence(
+					Pseq([atmoObject],inf),
+					Pseq([atmoObject.duration],inf),
+					10, // fadeTime
+				),
+				atmosphere["relativeAmplitude"],
+				atmosphere["title"].asSymbol,
+				atmosphere["description"],
+			);
+			sonicSpace.addSoundSource( atmosphere );
+		};	
+
+
+		// ================ sequences ============================
 
 		sequences = database.sequences;
 		sequences.do{ arg sequence; // for each sequence
@@ -177,7 +201,13 @@ SSC_Interpreter {
 		timesOfOccurence = Array.new;
 
 		// an array with the allowed time slots
-		allowedTimeSlots = (3,(timeSlotsResolution+3)..(duration-objectDuration)).asSet; // first sound should be after 3 seconds
+		if (duration > objectDuration) {
+			allowedTimeSlots = (0,(timeSlotsResolution+1)..(duration-objectDuration)).asSet; 
+		} {
+			"!!! SSC_Interpreter: Something looks wrong - the duration of an  sequence is greater than the total duration of the soundscape..".postln;
+			allowedTimeSlots = (0,(timeSlotsResolution+1)..duration).asSet; 	
+		};
+
 		
 		// delete slots already occupied by other Sources (with respect to density)
 
@@ -270,7 +300,7 @@ SSC_Interpreter {
 				++ SSG_NullSonicObject.new),
 			inf
 		);
-
+		
 		// pDur
 		pDur = Prand([ objects.choose.duration + atoms[0]["frequency"]],rrand(5,15));
 
@@ -280,12 +310,22 @@ SSC_Interpreter {
 		// calculate average atomSequence duration
 		atomSequenceDuration = objects.choose.duration.asInteger * concatenation;
 
+		// debug
+		// objects.do{
+		// 	arg i; 
+		// 	[i.label, i.duration].postln;
+		// };
+
 		// calculate time of Occurence (consider density and tags)
 		timesOfOccurence = Array.new;
 
 		// an array with the allowed time slots
-		allowedTimeSlots = (0,timeSlotsResolution..(duration-atomSequenceDuration)).asSet;
-
+		if (duration > atomSequenceDuration) {
+			allowedTimeSlots = (0,timeSlotsResolution..(duration-atomSequenceDuration)).asSet; 
+		} {
+			"!!! SSC_Interpreter: Something looks wrong - the average duration of an atomic sequence is greater than the total duration of the soundscape..".postln;
+			allowedTimeSlots = (0,timeSlotsResolution..duration).asSet; 	
+		};
 
 		// delete slots already occupied by other Sources (with respect to density)
 		memory.do{arg item; 
@@ -329,7 +369,7 @@ SSC_Interpreter {
 			timesOfOccurence.add(time); 
 			// object = nil; // let garbage collector know
 		};		
-		
+
 		// create source
 		if ( timesOfOccurence.size > 0 ) { // if the object is to occur 
 			this.pr_createSource(atoms[0], atomSequence, timesOfOccurence);

@@ -22,7 +22,7 @@ SSC_Acquire {
 
 	*initClass {
 
-		htmlPreample = "https://dev.celi.it/soda/api/soda/extended/documents.json?defaultOperator=OR&";
+		htmlPreample = "https://dev.celi.it/soda/api/soda/extended/dedupDocuments.json?type=search&&sortDir=-1&"; 
 
 	}
 
