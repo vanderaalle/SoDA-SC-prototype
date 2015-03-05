@@ -29,7 +29,8 @@
 		var endTime = (parentNotes ++ childrenNotes).collect{
 			arg i; i.duration + i.starttime}.maxItem;
 
+		if (endTime.isNil) {endTime = 0}; // if there are no notes return 0
+
 		^endTime;
 	}
 }
-

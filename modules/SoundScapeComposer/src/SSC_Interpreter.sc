@@ -137,17 +137,19 @@ SSC_Interpreter {
 				atmosphere["title"].asSymbol,
 				atmosphere["description"]
 			); 
-			atmosphere = SSG_SonicAtmosphere( 
-				SSG_Sequence(
-					Pseq([atmoObject],inf),
-					Pseq([atmoObject.duration],inf),
-					10, // fadeTime
-				),
-				atmosphere["relativeAmplitude"],
-				atmosphere["title"].asSymbol,
-				atmosphere["description"],
-			);
-			sonicSpace.addSoundSource( atmosphere );
+			if (atmoObject.isKindOf(SSG_NullSonicObject).not) {
+				atmosphere = SSG_SonicAtmosphere( 
+					SSG_Sequence(
+						Pseq([atmoObject],inf),
+						Pseq([atmoObject.duration],inf),
+						10, // fadeTime
+					),
+					atmosphere["relativeAmplitude"],
+					atmosphere["title"].asSymbol,
+					atmosphere["description"],
+				);
+				sonicSpace.addSoundSource( atmosphere );
+			}
 		};	
 
 

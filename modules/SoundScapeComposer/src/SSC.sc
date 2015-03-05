@@ -181,7 +181,7 @@ SoundScapeComposer {
 
 	bounce{
 		var filePath = (organicDb.auxilaryFolderPath +/+ "Audio Bounce " ++ Date.getDate.asSortableString ++ "_" ++ UniqueID.next.asString).asString ++ ".aiff";
-		// filePath.postln;
+		filePath.postln;
 		fork {
 			readyCond.wait;
 			"SSC: Now bouncing audio.".postln;

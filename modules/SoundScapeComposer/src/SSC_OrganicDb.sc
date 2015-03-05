@@ -87,10 +87,10 @@ SSC_OrganicDb {
 		"OrganicDb: Now parsing and pre-processing database".postln;
 		
 		entries = rawData.deepCopy; // so that rawData is kept intact
-		
+
 		// clean up and preprocess entries
 		this.preprocess(entries);
-		
+
 		// clean up and preprocess atoms
 		atoms = rawAtoms; 
 		atoms = atoms.select({arg i; i.size >= 2 }); // consider only groups of at least 2 atoms
@@ -129,7 +129,11 @@ SSC_OrganicDb {
 		atoms = atoms[0]; // it only contains an array that contains other arrays
 
 		// update entries
-		entries = atoms.flatten(2) ++ sequences ++ atmos ++ air;
+		if (atoms.isKindOf(Array)) {
+			entries = atoms.flatten(2) ++ sequences ++ atmos ++ air;
+		} {
+			entries = sequences ++ atmos ++ air;
+		};
 		
 		condition.test_(true);
 		condition.signal;
@@ -209,7 +213,11 @@ SSC_OrganicDb {
 			};
 		};
 		
-		entries = atoms.flatten(2) ++ sequences ++ atmos ++ air;
+		if (atoms.isKindOf(Array)) {
+			entries = atoms.flatten(2) ++ sequences ++ atmos ++ air;
+		} {
+			entries = sequences ++ atmos ++ air;
+		};
 
 		condition.test_(true);
 		condition.signal;
@@ -232,16 +240,16 @@ SSC_OrganicDb {
 		// relative amplitude
 		if ( item["relativeAmplitude"].isNil) { // if nil
 			// use default value and register change
-			item["relativeAmplitude"] = 0.4; 
+			item["relativeAmplitude"] = 0.1; 
 			completions = completions.add(item["title"].asString 
-				++ " -> " ++ "'relativeAmplitude' set to 0.4");
+				++ " -> " ++ "'relativeAmplitude' set to 0.1");
 		} { // else if out of range
 			if (item["relativeAmplitude"].asFloat.inRange(0,1).not){
 				// use default value and register change
-				item["relativeAmplitude"] = 0.4; 
+				item["relativeAmplitude"] = 0.1; 
 				completions = completions.add(item["title"]
 					.asString ++ " -> " ++ 
-					"'relativeAmplitude' set to 0.4");
+					"'relativeAmplitude' set to 0.1");
 			} { // else simply convert and use as is
 				item["relativeAmplitude"] = 
 				item["relativeAmplitude"].asFloat;
@@ -255,16 +263,16 @@ SSC_OrganicDb {
 		// relative amplitude
 		if ( item["relativeAmplitude"].isNil) { // if nil
 			// use default value and register change
-			item["relativeAmplitude"] = 0.5; 
+			item["relativeAmplitude"] = 0.2; 
 			completions = completions.add(item["title"].asString 
-				++ " -> " ++ "'relativeAmplitude' set to 0.5");
+				++ " -> " ++ "'relativeAmplitude' set to 0.2");
 		} { // else if out of range
 			if (item["relativeAmplitude"].asFloat.inRange(0,1).not){
 				// use default value and register change
-				item["relativeAmplitude"] = 0.5; 
+				item["relativeAmplitude"] = 0.2; 
 				completions = completions.add(item["title"]
 					.asString ++ " -> " ++ 
-					"'relativeAmplitude' set to 0.5");
+					"'relativeAmplitude' set to 0.2");
 			} { // else simply convert and use as is
 				item["relativeAmplitude"] = 
 				item["relativeAmplitude"].asFloat;
@@ -450,24 +458,25 @@ SSC_OrganicDb {
 			item.removeAt("uuid");
 
 			// simplify some tags
-			item["typeOfSoundObject"] = item["typeOfSoundObject"][0];
+			if (item["typeOfSoundObject"].isKindOf(Array)) {
+				item["typeOfSoundObject"] = item["typeOfSoundObject"][0];
+			};
 			if (item["typeOfSpace"].isKindOf(Array)) {
 				item["typeOfSpace"] = item["typeOfSpace"][0];
 			};
-			
 			
 			// downloadPath is the "url"
 			item.put("downloadPath", item["url"]);
 
 			// relative path is calculated with respect to the ftp hierarchy and a library path
-			if (soundLibraryPath[soundLibraryPath.size-1]==$/) { // if soundLibraryPath ends in /
-				item.put("filePath", soundLibraryPath ++ item["url"].replace("ftp://91.212.167.101/","")); 
-			} {
-				item.put("filePath", soundLibraryPath ++ item["url"].replace("ftp://91.212.167.101","")); 	
-			};
+			// if (soundLibraryPath[soundLibraryPath.size-1]==$/) { // if soundLibraryPath ends in /
+			// 	item.put("filePath", soundLibraryPath ++ item["url"].replace("ftp://91.212.167.101/","")); 
+			// } {
+			// 	item.put("filePath", soundLibraryPath ++ item["url"].replace("ftp://91.212.167.101","")); 	
+			// };
 
 			// TEST ONLY
-			// item.put("filePath", "/Users/marinos/projects/ongoing/SoDA/SoDA SC prototype/modules/SoundScapeComposer/temporary_files/" ++ item["title"]);
+			item.put("filePath", "/Users/marinos/projects/ongoing/SoDA/SoDA SC prototype/modules/SoundScapeComposer/temporary_files/" ++ item["title"]);
 
 			// retrieve and store class information
 			item["classes"].do{arg i; 

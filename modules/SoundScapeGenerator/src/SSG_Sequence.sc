@@ -115,6 +115,13 @@ SSG_Sequence {
 				signal = signal * amp;
 				signal = FoaEncode.ar(signal, encoderStereo);
 				Out.ar(out, signal);
+			}),
+			SynthDef(\silence, {
+				arg out = 0, fadeTime = 1, amplitude = 1, gate = 1, buffer,
+				loop=0, amp=1;
+				var signal = Silent.ar()!4;
+				signal = signal * Line.kr(1,0,1,doneAction:2);
+				Out.ar(out, signal);
 			})
 		);
 	}
@@ -372,9 +379,10 @@ SSG_Sequence {
 		this.reset; // reset sequence just in case;
 
 		block { arg break;
-			pDur.do{ arg duration;
+			pDur.do{ arg dur;
 
 				var sonicObject = pSonicObject.next;
+				var duration = if (dur>0) {dur} {1}; // if duration is 0 or less then use a duration of 1 to avoid an infinite loop
 
 				if ( (sonicObject != nil) 
 					&& (sonicObject.class!=SSG_NullSonicObject)) 
@@ -398,12 +406,21 @@ SSG_Sequence {
 					score.add(note.gate_(0,duration-fadeTime));
 					// score.add(note.release(duration+fadeTime));
 					// score.add(note.release(duration));
+				} {
+					// if nil or sonic Object just put silence instead
+					var note = synthDefs[\silence]
+					.note(time,duration,target:group);
+					score.add(note);
 				};
 				// );
-				
+
 				// update time
-				time = time + duration - fadeTime; // to compensate for fadeTime
-				// time.postln;
+				// make sure duration is greater than fadeTime else we will end up with an infinite loop
+				if (duration > fadeTime) {
+					time = time + duration - fadeTime; // to compensate for fadeTime
+				} {
+					time = time + duration;
+				};
 
 				if (time > maxDuration) {
 					break.value();

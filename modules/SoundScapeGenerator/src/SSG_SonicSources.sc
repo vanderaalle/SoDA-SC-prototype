@@ -226,9 +226,11 @@ SSG_AbstractSonicSource {
 		this.reset; // reset just in case;
 
 		block { arg break;
-			pWait.do{ arg duration;
+			pWait.do{ arg dur;
 
 				var seqScore;   // a score for each individual sequence's appearence
+
+				var duration = if (dur>0) {dur} {1}; // if duration is 0 or less then use a duration of 1 to avoid an infinite loop
 
 				// update time
 				time = time + duration;
@@ -243,7 +245,7 @@ SSG_AbstractSonicSource {
 				// it relies on CtkScore.lastNoteEndTime which is an added method
 
 				time = time + seqScore.lastNoteEndTime;
-
+				
 				if (time > maxDuration) {
 					break.value();
 				};
