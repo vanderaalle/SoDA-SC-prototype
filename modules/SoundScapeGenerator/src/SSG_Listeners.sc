@@ -12,8 +12,8 @@
 SSG_AbstractListener {
 
 	classvar < group;
-	classvar counter = 0;   // (Integer) used for the unique ids 
-	
+	classvar counter = 0;   // (Integer) used for the unique ids
+
 	var < position;         // (CtkControl) the bus holding the position
 	var < listeningRadius;  // (Number) the distance in meters over which listening occurs (inf is allowed)
 	var < id;               // (Integer) a unique id
@@ -21,17 +21,17 @@ SSG_AbstractListener {
 	var < info;             // (String) user-defined custom text
 
 	// ===================== new/init  =========================
-	
+
 	*initClass{
 
 		Class.initClassTree(CtkGroup);
-		
+
 		// group
 		group = CtkGroup.new(0, server:Server.default);
 	}
 
 	*new {
-		
+
 		arg
 		listeningRadius = inf,     // (Number) the distance in meters over which listening occurs (inf is allowed)
 		label = \no,              // (Symbol) a custom name for the object
@@ -48,7 +48,7 @@ SSG_AbstractListener {
 		{listeningRadius_.isKindOf(Number).not} { Error("SSG_AbstractListener: 'listeningRadius' argument should be an instance of Number").throw }
 		{label_.class != Symbol} { Error("SSG_AbstractListener: 'label' argument should be an instance of Symbol").throw }
 		{info_.class != String} { Error("SSG_AbstractListener: 'info' argument should be an instance of String").throw };
-		
+
 		// init member variables
 		listeningRadius = listeningRadius_;
 		label = label_;
@@ -56,7 +56,7 @@ SSG_AbstractListener {
 
 		// position bus
 		position = CtkControl(3,[0@0@0]);
-				
+
 		// generate and assign a unique id
 		counter = counter + 1;
 		id = counter;
@@ -66,8 +66,8 @@ SSG_AbstractListener {
 
 	setLabel {
 
-		arg label_; 
-		
+		arg label_;
+
 		// type-check argument and assing if ok
 		if (label_.class != Symbol) {
 			Error("SSG_AbstractListener \(id:" ++ " " ++ id ++ "\): Error, argument was not an instance of Symbol.").throw;
@@ -78,11 +78,11 @@ SSG_AbstractListener {
 
 		^this;
 	}
-	
+
 	setInfo {
-		
-		arg info_; 
-		
+
+		arg info_;
+
 		// type-check argument and assing if ok
 		if (info_.class != String) {
 			Error("SSG_AbstractListener \(id:" ++ " " ++ id ++ "\):  Error, argument was not an instance of String.").throw;
@@ -95,9 +95,9 @@ SSG_AbstractListener {
 	}
 
 	setListeningRadius {
-		
-		arg radius_; 
-		
+
+		arg radius_;
+
 		// type-check argument and assing if ok
 		if (radius_.isKindOf(Number).not) {
 			Error("SSG_AbstractListener \(id:" ++ " " ++ id ++ "\):  Error, argument was not an instance of Number.").throw;
@@ -142,23 +142,23 @@ SSG_FixedListener : SSG_AbstractListener {
 	}
 
 	pr_sub_init{ arg position_;
-		
+
 		// type check
 		if (position_.isKindOf(Cartesian).not)
 		{ Error("SSG_FixedListener: 'position' should be an instance of Cartesian.").throw };
-		
+
 		position.set(position_.asArray);
 	}
 
-	play{ 
+	play{
 		Server.default.waitForBoot({
 			position.play
 		});
 			^this;
 	}
 
-	exportScore{ 
-		var score = CtkScore.new; 
+	exportScore{
+		var score = CtkScore.new;
 		score.add(position);
 		^score;
 	}
@@ -166,11 +166,11 @@ SSG_FixedListener : SSG_AbstractListener {
 
 	setNewPosition {
 		arg position_;
-		
+
 		// type check
 		if (position_.isKindOf(Cartesian).not)
 		{ Error("SSG_FixedListener: 'position' should be an instance of Cartesian.").throw };
-		
+
 		position.set(position_.asArray.postln);
 		^this;
 	}
@@ -243,10 +243,10 @@ SSG_AmbulatoryListenerEnv : SSG_AbstractListener {
 		envelopeX = trajectories_[0];
 		envelopeY = trajectories_[1];
 		envelopeZ = trajectories_[2];
-		
+
 	}
 
-	
+
 	play { arg outBus=0, doneAction={};
 
 		var newDoneAction = {
@@ -262,7 +262,7 @@ SSG_AmbulatoryListenerEnv : SSG_AbstractListener {
 			).out_(position).envX_(envelopeX).envY_(envelopeY)
 			.envZ_(envelopeZ).play;
 		});
-		
+
 		^this;
 	}
 
@@ -273,7 +273,7 @@ SSG_AmbulatoryListenerEnv : SSG_AbstractListener {
 
 	exportScore { // overload export score
 
-		var score = CtkScore.new; 
+		var score = CtkScore.new;
 
 		var trajectorySynth = synthDefs[\envTrajectory].note(
 			target: SSG_AbstractListener.group,
@@ -285,7 +285,6 @@ SSG_AmbulatoryListenerEnv : SSG_AbstractListener {
 		score.add(trajectorySynth);
 		^score;
 	}
-
 }
 
 // SSG_AmbulatoryListenerFunc

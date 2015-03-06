@@ -4,7 +4,7 @@
 // full Example
 ~ssc = SoundScapeComposer.new("cars birds Berlin", 240, \stereo, 3, 100)
 
-~ssc = SoundScapeComposer.new("country day", 180, \stereo, 3, 200)
+~ssc = SoundScapeComposer.new("country day", 180, \stereo, 3, 200, "path?")
 
 ~ssc.bounce
 

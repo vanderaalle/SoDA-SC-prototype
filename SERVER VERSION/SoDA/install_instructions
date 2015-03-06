@@ -1,0 +1,39 @@
+
+LIBRARY
+- the library with the sound files has to maintain the exact hierarchical pattern as in the CELI database
+- the library may be put in whichever path as long as the relevant argument in the command is updated - see below.
+
+SODA
+- you may put the folder anywhere you want. To invoke the program you have to know the path of the folder. For the followign instructions it is assumed that the folder is in the  /Users/machiavelli/Desktop/ folder, please update the following according to the actual location of SoDA. 
+
+MAINTANANCE
+- from time to time you may want to delete the following:
+  -  /Users/machiavelli/Desktop/SoDA/temporary_files/ 
+  -  /Users/machiavelli/Desktop/SoDA/log
+  -  /Users/machiavelli/Desktop/SoDA/bounces/
+
+TO USE
+* Note that it might be necessary to make the following files executable (with chmod a+x): 
+	- /Users/machiavelli/Desktop/SoDA/Resources/sclang
+	- /Users/machiavelli/Desktop/SoDA/Resources/sclang
+- the web interface has to perform the following:
+   - run this command in some terminal session (check ARGUMENTS below for info on the various arguments)
+
+     	 -  /Users/machiavelli/Desktop/SoDA/soda_exec/Resources/sclang /Users/machiavelli/Desktop/SoDA/run.scd searchString duration decoder density spread soundLibraryPath destination >  /Users/machiavelli/Desktop/SoDA/log;
+
+   - check to see whether a new file with the desired name has been created in the SoDA/bounces folder and give it to the client for download when ready... 
+
+ARGUMENTS
+   - searchString (words in “” separated by an empty space)
+   - duration (in seconds - has to be an Integer)
+   - decoder (can be either \stereo or \mono or \50 (5.0) for now)
+   - density (default is 2 or 3 - has to be an Integer)
+   - spread (size of the entire sonicSpace, default is 200 - has to be an Integer)
+   - soundLibraryPath (the folder that contains the entire library, possibly in “”)
+   - destination (the desired name for the generated sound-file, no spaces and no weird characters and no extension) -> /Users/machiavelli/Desktop/SODA_ASSET/ in this case
+
+
+**Note that it is the responsibility of the web-interface to: 
+- handle multiple queries in a logical way so that the server does not crash when a big number of multiple queries occur simultaneously
+- kill the program if for whatever reason the program crashes or stops responding
+- make sure the entire system is secure and hacker-safe.

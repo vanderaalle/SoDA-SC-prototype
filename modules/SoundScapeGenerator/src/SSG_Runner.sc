@@ -24,6 +24,7 @@ SSG_Runner {
 
 	var zoneBuses;          // (Array of CtkAudio) buses to route audio to the zoneSynths
 	var renderBus;         // // (CtkAudio) the master bus with the mix for the decoding synth
+	var <readyCond; // (Condition) condition to indicate when bouncing is ready 
 
 	// ===================== initClass  =========================
 
@@ -144,6 +145,9 @@ SSG_Runner {
 		listener = listener_;
 		sonicSpace = sonicSpace_;
 		decoder = decoder_;
+
+		// condition
+		readyCond = Condition.new(false);
 
 		// add decoder synthDef (now that the decoder is known)
 		synthDefs.add(
@@ -348,11 +352,12 @@ SSG_Runner {
 		masterScore.add(listener.exportScore);
 
 		// bounce score
-		masterScore.write(file,duration,48000,"AIFF","int24",options:ServerOptions.new.numOutputBusChannels_(decoder.numChannels));
+		masterScore.write(file,duration,48000,"AIFF","int24",options:ServerOptions.new.numOutputBusChannels_(decoder.numChannels), action:{	
+			readyCond.test_(true);
+			readyCond.signal;}
+		);
 
 		// for debuggin only
 		// ^masterScore;
 	}
 }
-
-

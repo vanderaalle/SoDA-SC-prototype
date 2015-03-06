@@ -18,7 +18,8 @@ SoundScapeComposer {
 	// paths
 	var organicPath;
 	var parentFolderPath;
-
+	var soundLibraryPath;
+	var destination; // the final name of the bounce (no .aif in the end)
 
 	var duration;          // (Number) total duration
 	var decoder;           // (FoaDecoderMatrix) the decoder
@@ -48,14 +49,16 @@ SoundScapeComposer {
 		decoder = \stereo, // stereo, 5.1, etc
 		// maxEntries = 100, maxSimilarEntries = 10, maxAtomsPerSequence = 10, maxAtmos = 1
 		density = 2,         // (Integer) how many simultaneous different events (approximation)
-		spread = 200;       // (Number) spatial spread of soundscape
+		spread = 200,       // (Number) spatial spread of soundscape
 		// correlation = false; // (Boolean) true will result in semantically relevant events to be temporally grouped together (if possible)
+		soundLibraryPath, // (The folder with the completeLibrary)
+		destination; // the destination file name
 
-		^super.new.pr_init(search, duration, decoder, density, spread);
+		^super.new.pr_init(search, duration, decoder, density, spread, soundLibraryPath, destination);
 	}
 
 	pr_init{
-		arg search_, duration_, decoder_, density, spread;
+		arg search_, duration_, decoder_, density, spread, library, destination_;
 
 		"------------------------- // ---------------------".postln;
 		"SSC: New SoundScapeComposition Initiated.".postln;
@@ -71,7 +74,13 @@ SoundScapeComposer {
 		{density.isKindOf(Number).not} {
 			Error("SSC: argument 'density' should be an instance of Integer").throw;}
 		{spread.isKindOf(Number).not} {
-			Error("SSC: argument 'spread' should be an instance of Number").throw;};
+			Error("SSC: argument 'spread' should be an instance of Number").throw;} 
+		{library.isKindOf(String).not} {
+				Error("SSC: argument 'library' should be an instance of String pointing to an actual Folder in the Hard Drive").throw;}
+		{PathName(library).isFolder.not} {
+			Error("SSC: argument 'library' points to an non existent folder").throw;}	
+		{destination_.isKindOf(String).not} {
+			Error("SSC: argument 'Destination' should be an instance of String with a name of a file").throw;};
 
 		// type check decoder
 		if (decoder_.class==FoaDecoderMatrix) {
@@ -95,6 +104,10 @@ SoundScapeComposer {
 
 		search = search_;
 		duration = duration_;
+		destination = destination_;
+		
+		soundLibraryPath = library;
+			
 
 		ready = false;
 		readyCond = Condition(false);
@@ -124,7 +137,7 @@ SoundScapeComposer {
 			// organicPath.postln;
 			
 			// init organicDb
-			organicDb = SSC_OrganicDb(parentFolderPath, parentFolderPath); // THE SECOND PATH SHOULD POINT TO THE ACTUAL LOCATION OF THE FILES... 
+			organicDb = SSC_OrganicDb(parentFolderPath, soundLibraryPath); // THE SECOND PATH SHOULD POINT TO THE ACTUAL LOCATION OF THE FILES... 
 
 			// populate with entries
 			"SSC: Populating Dbase".postln;
@@ -145,7 +158,7 @@ SoundScapeComposer {
 			organicDb.prepare(maxEntries,10,1).wait;
 
 
-			"SSC: Downloading audiofiles".postln;
+			// "SSC: Downloading audiofiles".postln;
 			// download audiofiles
 			// organicDb.downloadFiles.wait;
 
@@ -171,6 +184,8 @@ SoundScapeComposer {
 			ready = true;
 			readyCond.test_(true);
 			readyCond.signal;
+
+			// this.bounce(); // bounce directly (Server version only)
 		};
 		^this;
 	}
@@ -180,12 +195,17 @@ SoundScapeComposer {
 	// ========================== bounce =============================
 
 	bounce{
-		var filePath = (organicDb.auxilaryFolderPath +/+ "Audio Bounce " ++ Date.getDate.asSortableString ++ "_" ++ UniqueID.next.asString).asString ++ ".aiff";
+		var filePath = (organicDb.auxilaryFolderPath +/+ "Audio_Bounce_" ++ Date.getDate.asSortableString ++ "_" ++ UniqueID.next.asString).asString ++ ".aiff";
 		filePath.postln;
 		fork {
 			readyCond.wait;
 			"SSC: Now bouncing audio.".postln;
 			runner.bounce(duration,filePath);
+			"SSC: Renaming File!".postln;
+			("mv " ++ filePath.asUnixPath ++ "  " ++ (organicDb.auxilaryFolderPath++"/../bounces/") ++ destination ++ ".aif").unixCmd;
+			"SSC: Done!".postln;
+			readyCond.test_(true);
+			readyCond.signal;
 		}
 	}
 

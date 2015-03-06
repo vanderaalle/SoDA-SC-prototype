@@ -1,0 +1,1 @@
+10.do{"It's ok!!".postln}; 0.exit;
