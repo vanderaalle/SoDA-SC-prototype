@@ -42,6 +42,7 @@ SSG_Sequence {
 		Class.initClassTree(SynthDescLib);
 		Class.initClassTree(SynthDef);
 		Class.initClassTree(CtkProtoNotes);
+		Class.initClassTree(Atk);
 		//Class.initClassTree(CtkGroup);
 		Class.initClassTree(FoaEncoderMatrix);
 
